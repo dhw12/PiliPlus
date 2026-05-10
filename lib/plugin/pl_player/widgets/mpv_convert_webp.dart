@@ -121,7 +121,8 @@ class MpvConvertWebp {
     final pointers = args.map((e) => e.toNativeUtf8()).toList();
     final arr = calloc<Pointer<Uint8>>(pointers.length + 1);
     for (int i = 0; i < args.length; i++) {
-      arr[i] = pointers[i];
+      // 强制转换指针类型，兼容新版FFI定义
+      arr[i] = pointers[i].cast<Uint8>();
     }
 
     _mpv.mpv_command(_ctx, arr);
