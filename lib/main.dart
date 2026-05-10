@@ -95,10 +95,7 @@ Future<void> _initSdkInt() async {
 
 void main() async {
   ScaledWidgetsFlutterBinding.ensureInitialized();
-  // 仅安卓端启用Media3后端，iOS/桌面端自动保留原有默认后端，完全不影响其他端
-  MediaKit.ensureInitialized(
-  androidBackend: AndroidBackend.media3,
-);
+  MediaKit.ensureInitialized();
 
   await _initAppPath();
   try {
