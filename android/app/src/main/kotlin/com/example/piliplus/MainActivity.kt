@@ -18,6 +18,8 @@ import android.provider.MediaStore
 import android.provider.Settings
 import android.view.WindowManager.LayoutParams
 import androidx.core.net.toUri
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -28,6 +30,7 @@ import java.io.File
 class MainActivity : AudioServiceActivity() {
     private lateinit var methodChannel: MethodChannel
     private var isFoldable = false
+    private var media3ProbePlayer: ExoPlayer? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -185,6 +188,15 @@ class MainActivity : AudioServiceActivity() {
                     result.success(isFoldable)
                 }
 
+                "media3ProbeCreate" -> {
+                    result.success(createMedia3ProbePlayer(call.argument<String>("url")))
+                }
+
+                "media3ProbeRelease" -> {
+                    releaseMedia3ProbePlayer()
+                    result.success(true)
+                }
+
                 else -> result.notImplemented()
             }
         }
@@ -232,6 +244,33 @@ class MainActivity : AudioServiceActivity() {
         startActivity(intent)
     }
 
+    private fun createMedia3ProbePlayer(url: String?): Map<String, Any> {
+        return try {
+            releaseMedia3ProbePlayer()
+            val player = ExoPlayer.Builder(this).build()
+            media3ProbePlayer = player
+            if (!url.isNullOrBlank()) {
+                player.setMediaItem(MediaItem.fromUri(url))
+                player.prepare()
+            }
+            mapOf(
+                "created" to true,
+                "hasMediaItem" to !url.isNullOrBlank(),
+                "player" to "androidx.media3.exoplayer.ExoPlayer",
+            )
+        } catch (e: Throwable) {
+            mapOf(
+                "created" to false,
+                "error" to (e.message ?: e::class.java.name),
+            )
+        }
+    }
+
+    private fun releaseMedia3ProbePlayer() {
+        media3ProbePlayer?.release()
+        media3ProbePlayer = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -249,6 +288,7 @@ class MainActivity : AudioServiceActivity() {
     }
 
     override fun onDestroy() {
+        releaseMedia3ProbePlayer()
         stopService(Intent(this, com.ryanheise.audioservice.AudioService::class.java))
         super.onDestroy()
     }
